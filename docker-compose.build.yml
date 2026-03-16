@@ -1,11 +1,10 @@
+# Build locally instead of pulling from GHCR.
+# Usage: docker compose -f docker-compose.build.yml up --build
 services:
   mirofish:
-    # Option 1 (default): pull pre-built image from GitHub Container Registry
-    image: ghcr.io/icojerrel/mirofish:latest
-    # Option 2: build locally from source
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: mirofish
     env_file:
       - .env

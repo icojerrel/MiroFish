@@ -18,7 +18,15 @@ from .utils.logger import setup_logger, get_logger
 
 def create_app(config_class=Config):
     """Flask应用工厂函数"""
-    app = Flask(__name__)
+    # In production the built frontend lives at <repo>/frontend/dist.
+    # Flask serves it as static files so a separate web server is not required.
+    _frontend_dist = os.path.join(os.path.dirname(__file__), '../../frontend/dist')
+    _serve_frontend = os.path.isdir(_frontend_dist) and not config_class.DEBUG
+
+    if _serve_frontend:
+        app = Flask(__name__, static_folder=_frontend_dist, static_url_path='')
+    else:
+        app = Flask(__name__)
     app.config.from_object(config_class)
     
     # 设置JSON编码：确保中文直接显示（而不是 \uXXXX 格式）
@@ -88,6 +96,18 @@ def create_app(config_class=Config):
     @app.route('/health')
     def health():
         return {'status': 'ok', 'service': 'MiroFish Backend'}
+
+    # 生产模式：将所有非 API 路由交给前端 SPA 处理
+    if _serve_frontend:
+        from flask import send_from_directory
+
+        @app.route('/', defaults={'path': ''})
+        @app.route('/<path:path>')
+        def serve_spa(path):
+            full = os.path.join(_frontend_dist, path)
+            if path and os.path.isfile(full):
+                return send_from_directory(_frontend_dist, path)
+            return send_from_directory(_frontend_dist, 'index.html')
     
     if should_log_startup:
         logger.info("MiroFish Backend 启动完成")

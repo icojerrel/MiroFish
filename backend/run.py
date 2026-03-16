@@ -22,8 +22,17 @@ from app import create_app
 from app.config import Config
 
 
+def create_wsgi_app():
+    """WSGI entry point for Gunicorn (production).
+
+    Usage: gunicorn 'run:create_wsgi_app()'
+    Config validation is skipped here; set env vars before starting.
+    """
+    return create_app()
+
+
 def main():
-    """主函数"""
+    """主函数 — development only"""
     # 验证配置
     errors = Config.validate()
     if errors:
@@ -32,15 +41,15 @@ def main():
             print(f"  - {err}")
         print("\n请检查 .env 文件中的配置")
         sys.exit(1)
-    
+
     # 创建应用
     app = create_app()
-    
+
     # 获取运行配置
     host = os.environ.get('FLASK_HOST', '0.0.0.0')
     port = int(os.environ.get('FLASK_PORT', 5001))
     debug = Config.DEBUG
-    
+
     # 启动服务
     app.run(host=host, port=port, debug=debug, threaded=True)
 

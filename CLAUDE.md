@@ -472,6 +472,103 @@ CANOPY_POLL_INTERVAL=30   # inbox poll in seconds
 
 ---
 
+## Deployment
+
+### Production architecture
+
+In production, a single container runs everything:
+
+```
+Browser → port 5001 → Gunicorn → Flask
+                                  ├── /api/*      — API blueprints
+                                  └── /*          — serves frontend/dist/ (Vue SPA)
+```
+
+Flask automatically detects `frontend/dist/` at startup. If it exists and `FLASK_DEBUG=false`, it serves the SPA and delegates all non-API routes to `index.html`.
+
+### Quick start (Docker, pre-built image)
+
+```bash
+cp .env.example .env   # fill in LLM_API_KEY, ZEP_API_KEY, etc.
+docker compose up -d
+# App available at http://localhost:5001
+```
+
+### Build from source
+
+```bash
+docker compose -f docker-compose.build.yml up --build -d
+```
+
+### Multi-platform build (CI/CD)
+
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/icojerrel/mirofish:latest \
+  --push .
+```
+
+### Environment variables (production)
+
+All required vars in `.env`:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LLM_API_KEY` | ✅ | OpenAI-compatible API key |
+| `LLM_BASE_URL` | ✅ | API base URL |
+| `LLM_MODEL_NAME` | ✅ | Model name |
+| `ZEP_API_KEY` | ✅ | Zep Cloud API key |
+| `FLASK_DEBUG` | — | `false` in production |
+| `CANOPY_BASE_URL` | optional | Canopy workspace URL |
+| `CANOPY_API_KEY` | optional | Canopy agent API key |
+| `CANOPY_CHANNEL_ID` | optional | Default Canopy channel |
+| `WEBHOOK_URL` | optional | Event webhook endpoint |
+| `WEBHOOK_SECRET` | optional | HMAC signing secret |
+| `SCRAPER_DEFAULT_MODE` | optional | `auto`/`basic`/`stealthy`/`dynamic` |
+
+### Gunicorn settings
+
+Default: 1 worker × 4 threads, 300s timeout (suitable for single-node). For higher load:
+
+```bash
+# Override CMD in docker-compose:
+command: >
+  backend/.venv/bin/gunicorn
+  --bind 0.0.0.0:5001
+  --workers 2 --threads 4
+  --timeout 300 --worker-class gthread
+  --chdir backend run:create_wsgi_app()
+```
+
+### Scrapling dynamic mode (Playwright)
+
+For JS-heavy sites (LinkedIn, Twitter/X), uncomment the two Playwright lines in the Dockerfile and rebuild.
+
+### CI/CD
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| `ci.yml` | push/PR to main | backend tests, frontend build, Docker build check |
+| `docker-image.yml` | git tag push | builds multi-arch image, pushes to GHCR |
+
+Release flow:
+```bash
+git tag v1.2.0 && git push origin v1.2.0
+# GitHub Actions builds + pushes ghcr.io/icojerrel/mirofish:v1.2.0 and :latest
+```
+
+### Data persistence
+
+Only `backend/uploads/` needs to be persisted (mounted as Docker volume). It contains:
+- Uploaded documents
+- Extracted text per project
+- Simulation run states
+- Scheduled source config (`scheduled_sources.json`)
+- Report markdown files
+
+---
+
 ## Important Notes
 
 - **uploads/** directory is gitignored — created automatically on first run

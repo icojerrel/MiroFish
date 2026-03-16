@@ -1,29 +1,74 @@
-FROM python:3.11
+# =============================================================================
+# Stage 1: Build frontend
+# =============================================================================
+# syntax=docker/dockerfile:1
+# Supports: docker buildx build --platform linux/amd64,linux/arm64
 
-# 安装 Node.js （满足 >=18）及必要工具
+# =============================================================================
+# Stage 1: Build frontend
+# =============================================================================
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /app
+
+# Install frontend dependencies
+COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+RUN npm ci && npm ci --prefix frontend
+
+# Build production assets
+COPY frontend/ ./frontend/
+RUN npm run build
+# Output: frontend/dist/
+
+
+# =============================================================================
+# Stage 2: Production backend
+# =============================================================================
+FROM python:3.11-slim
+
+# System deps: only what's needed at runtime
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends nodejs npm \
+  && apt-get install -y --no-install-recommends \
+       curl \
+       ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-# 从 uv 官方镜像复制 uv
+# Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.9.26 /uv /uvx /bin/
 
 WORKDIR /app
 
-# 先复制依赖描述文件以利用缓存
-COPY package.json package-lock.json ./
-COPY frontend/package.json frontend/package-lock.json ./frontend/
+# Install Python dependencies (uv sync without --frozen so new deps are resolved)
 COPY backend/pyproject.toml backend/uv.lock ./backend/
+RUN cd backend && uv sync --no-dev
 
-# 安装依赖（Node + Python）
-RUN npm ci \
-  && npm ci --prefix frontend \
-  && cd backend && uv sync --frozen
+# Copy backend source
+COPY backend/ ./backend/
 
-# 复制项目源码
-COPY . .
+# Copy built frontend into location Flask will serve
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-EXPOSE 3000 5001
+# Create uploads directory
+RUN mkdir -p backend/uploads backend/uploads/simulations
 
-# 同时启动前后端（开发模式）
-CMD ["npm", "run", "dev"]
+# Optional: install Playwright for Scrapling dynamic mode
+# Uncomment the next two lines if you need to scrape JS-heavy sites:
+# RUN backend/.venv/bin/playwright install chromium --with-deps 2>/dev/null || true
+# ENV SCRAPLING_BROWSER_PATH=/root/.cache/ms-playwright
+
+EXPOSE 5001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD curl -f http://localhost:5001/health || exit 1
+
+# Production: gunicorn with 4 worker threads
+CMD ["backend/.venv/bin/gunicorn", \
+     "--bind", "0.0.0.0:5001", \
+     "--workers", "1", \
+     "--threads", "4", \
+     "--timeout", "300", \
+     "--worker-class", "gthread", \
+     "--chdir", "backend", \
+     "run:create_wsgi_app()"]
