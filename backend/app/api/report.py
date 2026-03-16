@@ -153,7 +153,7 @@ def generate_report():
                 
                 # 保存报告
                 ReportManager.save_report(report)
-                
+
                 if report.status == ReportStatus.COMPLETED:
                     task_manager.complete_task(
                         task_id,
@@ -163,6 +163,20 @@ def generate_report():
                             "status": "completed"
                         }
                     )
+                    # 推送报告到 Canopy 工作区（如已配置）
+                    try:
+                        from ..services.canopy_service import CanopyService
+                        canopy = CanopyService()
+                        if canopy.is_enabled():
+                            project_name = project.name if hasattr(project, 'name') else str(project.project_id)
+                            canopy.post_report(
+                                project_name=project_name,
+                                report_id=report.report_id,
+                                simulation_id=simulation_id,
+                                summary=report.markdown_content or '',
+                            )
+                    except Exception as canopy_err:
+                        logger.warning(f'Canopy report push failed (non-fatal): {canopy_err}')
                 else:
                     task_manager.fail_task(task_id, report.error or "报告生成失败")
                 

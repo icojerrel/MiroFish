@@ -523,6 +523,20 @@ class SimulationRunner:
                 state.runner_status = RunnerStatus.COMPLETED
                 state.completed_at = datetime.now().isoformat()
                 logger.info(f"模拟完成: {simulation_id}")
+                # 通知 Canopy 工作区（如已配置）
+                try:
+                    from .canopy_service import CanopyService
+                    canopy = CanopyService()
+                    if canopy.is_enabled():
+                        canopy.post_simulation_signal(
+                            project_name=simulation_id,
+                            simulation_id=simulation_id,
+                            status='completed',
+                            progress=100,
+                            round_num=state.current_round,
+                        )
+                except Exception as _canopy_err:
+                    logger.debug(f'Canopy simulation signal failed (non-fatal): {_canopy_err}')
             else:
                 state.runner_status = RunnerStatus.FAILED
                 # 从主日志文件读取错误信息
