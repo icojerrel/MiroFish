@@ -248,6 +248,72 @@ All configuration is loaded via `backend/app/config.py`. Add new env vars there 
 
 ---
 
+## Web Scraping Integration (Data Ingestion)
+
+MiroFish integrates with **[Scrapling](https://github.com/icojerrel/Scrapling)** — an adaptive scraping framework with anti-bot bypass — to feed live web content into the knowledge graph pipeline.
+
+### Data flow
+
+```
+URLs → ScraperService → clean text → ProjectManager.save_extracted_text()
+                                              ↓
+                                   existing graph build pipeline
+```
+
+### Fetch modes
+
+| Mode | When to use |
+|------|-------------|
+| `auto` | Default — picks the right mode per domain heuristically |
+| `basic` | Fast HTTP with TLS fingerprint spoofing (most public sites) |
+| `stealthy` | Bypass Cloudflare, anti-bot, paywalls |
+| `dynamic` | Full Playwright browser for JS-heavy SPAs |
+
+### Scraper API routes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/scraper/fetch` | Scrape 1–10 URLs, return clean text preview |
+| POST | `/api/scraper/crawl` | Start async domain crawl (task-based) |
+| POST | `/api/scraper/ingest` | Scrape URLs and append to project corpus |
+| GET | `/api/scraper/tasks/:id` | Poll crawl task status |
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `backend/app/services/scraper_service.py` | Scrapling wrapper — fetch, crawl, HTML→text |
+| `backend/app/api/scraper.py` | `/api/scraper` Flask blueprint |
+| `frontend/src/api/scraper.js` | Frontend API module |
+| `frontend/src/components/ScraperPanel.vue` | URL input UI with mode selector and progress |
+
+### Using ScraperPanel in Step1
+
+```vue
+<!-- In Step1GraphBuild.vue, add after the file upload section: -->
+<ScraperPanel :project-id="projectId" @ingested="onScraperIngested" />
+```
+
+### Per use case
+
+| Use case | Recommended URLs to scrape |
+|----------|---------------------------|
+| Political intelligence | Reuters, AP, government press releases |
+| Financial risk | SEC filings, central bank publications, Bloomberg |
+| Crisis management | Emergency services sites, demographic databases |
+| Competitive intel | Competitor investor pages, job boards, patent offices |
+| Cybersecurity | CVE databases, threat intel feeds, vendor advisories |
+
+### Installation
+
+```bash
+pip install scrapling
+# For dynamic mode (JS-heavy sites):
+playwright install chromium
+```
+
+---
+
 ## Canopy Integration (Enterprise Collaboration)
 
 MiroFish integrates with **[Canopy](https://github.com/icojerrel/Canopy)** — a local-first, encrypted P2P workspace (Slack alternative built for the agentic era). This turns MiroFish into an enterprise platform where prediction reports and simulation signals are automatically shared with the team in a secure, self-hosted workspace.

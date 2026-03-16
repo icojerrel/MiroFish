@@ -63,6 +63,10 @@ class Config:
     REPORT_AGENT_MAX_REFLECTION_ROUNDS = int(os.environ.get('REPORT_AGENT_MAX_REFLECTION_ROUNDS', '2'))
     REPORT_AGENT_TEMPERATURE = float(os.environ.get('REPORT_AGENT_TEMPERATURE', '0.5'))
 
+    # Scraper配置
+    SCRAPER_MAX_TEXT_PER_PAGE = int(os.environ.get('SCRAPER_MAX_TEXT_PER_PAGE', '50000'))
+    SCRAPER_DEFAULT_MODE = os.environ.get('SCRAPER_DEFAULT_MODE', 'auto')  # auto|basic|stealthy|dynamic
+
     # Canopy集成配置（可选）
     # 将MiroFish预测报告和模拟信号推送到Canopy加密团队工作区
     CANOPY_BASE_URL = os.environ.get('CANOPY_BASE_URL', '')        # e.g. http://localhost:7770
