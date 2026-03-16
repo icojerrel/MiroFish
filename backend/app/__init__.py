@@ -63,10 +63,17 @@ def create_app(config_class=Config):
         return response
     
     # 注册蓝图
-    from .api import graph_bp, simulation_bp, report_bp
+    from .api import graph_bp, simulation_bp, report_bp, canopy_bp
     app.register_blueprint(graph_bp, url_prefix='/api/graph')
     app.register_blueprint(simulation_bp, url_prefix='/api/simulation')
     app.register_blueprint(report_bp, url_prefix='/api/report')
+    app.register_blueprint(canopy_bp, url_prefix='/api/canopy')
+
+    # 启动 Canopy 收件箱监听器（如已配置）
+    from .services.canopy_agent import start_canopy_agent
+    start_canopy_agent()
+    if should_log_startup:
+        logger.info("Canopy 集成已初始化")
     
     # 健康检查
     @app.route('/health')

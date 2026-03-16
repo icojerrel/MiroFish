@@ -62,6 +62,13 @@ class Config:
     REPORT_AGENT_MAX_TOOL_CALLS = int(os.environ.get('REPORT_AGENT_MAX_TOOL_CALLS', '5'))
     REPORT_AGENT_MAX_REFLECTION_ROUNDS = int(os.environ.get('REPORT_AGENT_MAX_REFLECTION_ROUNDS', '2'))
     REPORT_AGENT_TEMPERATURE = float(os.environ.get('REPORT_AGENT_TEMPERATURE', '0.5'))
+
+    # Canopy集成配置（可选）
+    # 将MiroFish预测报告和模拟信号推送到Canopy加密团队工作区
+    CANOPY_BASE_URL = os.environ.get('CANOPY_BASE_URL', '')        # e.g. http://localhost:7770
+    CANOPY_API_KEY = os.environ.get('CANOPY_API_KEY', '')          # scoped agent API key
+    CANOPY_CHANNEL_ID = os.environ.get('CANOPY_CHANNEL_ID', '')    # target channel for posts
+    CANOPY_POLL_INTERVAL = int(os.environ.get('CANOPY_POLL_INTERVAL', '30'))  # inbox poll (seconds)
     
     @classmethod
     def validate(cls):

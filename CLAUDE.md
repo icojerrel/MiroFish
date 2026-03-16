@@ -248,6 +248,72 @@ All configuration is loaded via `backend/app/config.py`. Add new env vars there 
 
 ---
 
+## Canopy Integration (Enterprise Collaboration)
+
+MiroFish integrates with **[Canopy](https://github.com/icojerrel/Canopy)** — a local-first, encrypted P2P workspace (Slack alternative built for the agentic era). This turns MiroFish into an enterprise platform where prediction reports and simulation signals are automatically shared with the team in a secure, self-hosted workspace.
+
+### What gets posted to Canopy
+
+| Event | Canopy message type |
+|-------|-------------------|
+| Report generation completed | `[task]` block with report summary |
+| Simulation completed | `[signal]` block with final status |
+| Knowledge graph built | `[signal]` block with graph metadata |
+
+### Agent inbox (mention commands)
+
+MiroFish registers as an agent in Canopy. Team members can @mention it:
+
+| Command | Response |
+|---------|----------|
+| `@mirofish status` | List recent simulations |
+| `@mirofish report <sim_id>` | Fetch report summary |
+| `@mirofish help` | Show available commands |
+
+### New files added for this integration
+
+| File | Purpose |
+|------|---------|
+| `backend/app/services/canopy_service.py` | Canopy REST API client (post messages, signals, reports) |
+| `backend/app/services/canopy_agent.py` | Background daemon polling Canopy inbox for @mentions |
+| `backend/app/api/canopy.py` | `/api/canopy` blueprint (status, test, push-report) |
+| `frontend/src/api/canopy.js` | Frontend API calls to Canopy endpoints |
+| `frontend/src/components/CanopyPanel.vue` | Connection status panel + push buttons |
+
+### Canopy API routes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/canopy/status` | Connection status + config info |
+| POST | `/api/canopy/test` | Post a test message to the channel |
+| POST | `/api/canopy/push-report` | Manually push a report by `report_id` |
+
+### Setup
+
+1. Run Canopy: `python -m canopy` (default port 7770)
+2. Create an API key: Canopy UI → Settings → API Keys
+3. Copy the target channel ID from channel settings
+4. Add to `.env`:
+
+```bash
+CANOPY_BASE_URL=http://localhost:7770
+CANOPY_API_KEY=your_canopy_api_key_here
+CANOPY_CHANNEL_ID=your_channel_id_here
+CANOPY_POLL_INTERVAL=30   # inbox poll in seconds
+```
+
+5. Restart MiroFish backend — the inbox listener starts automatically
+6. Use `<CanopyPanel />` in any Vue component to show connection status and push buttons
+
+### Architecture notes
+
+- **`CanopyService`** is instantiated per-request (stateless HTTP calls to Canopy's `/api/v1`)
+- **Canopy inbox listener** runs as a background daemon thread; all LLM/DB work is done inside MiroFish, replies go back to Canopy via REST
+- All Canopy calls are **non-fatal** — if Canopy is offline or not configured, MiroFish continues normally
+- The integration is **opt-in**: no Canopy vars = no listener, no hooks fire
+
+---
+
 ## Important Notes
 
 - **uploads/** directory is gitignored — created automatically on first run
