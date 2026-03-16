@@ -63,12 +63,20 @@ def create_app(config_class=Config):
         return response
     
     # 注册蓝图
-    from .api import graph_bp, simulation_bp, report_bp, canopy_bp, scraper_bp
+    from .api import graph_bp, simulation_bp, report_bp, canopy_bp, scraper_bp, scheduler_bp, templates_bp
     app.register_blueprint(graph_bp, url_prefix='/api/graph')
     app.register_blueprint(simulation_bp, url_prefix='/api/simulation')
     app.register_blueprint(report_bp, url_prefix='/api/report')
     app.register_blueprint(canopy_bp, url_prefix='/api/canopy')
     app.register_blueprint(scraper_bp, url_prefix='/api/scraper')
+    app.register_blueprint(scheduler_bp, url_prefix='/api/scheduler')
+    app.register_blueprint(templates_bp, url_prefix='/api/templates')
+
+    # 启动调度器（自动数据刷新）
+    from .services.scheduler_service import SchedulerService
+    SchedulerService().start_all()
+    if should_log_startup:
+        logger.info("调度器已启动")
 
     # 启动 Canopy 收件箱监听器（如已配置）
     from .services.canopy_agent import start_canopy_agent

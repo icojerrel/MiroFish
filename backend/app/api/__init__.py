@@ -9,10 +9,14 @@ simulation_bp = Blueprint('simulation', __name__)
 report_bp = Blueprint('report', __name__)
 canopy_bp = Blueprint('canopy', __name__)
 scraper_bp = Blueprint('scraper', __name__)
+scheduler_bp = Blueprint('scheduler', __name__)
+templates_bp = Blueprint('templates', __name__)
 
 from . import graph  # noqa: E402, F401
 from . import simulation  # noqa: E402, F401
 from . import report  # noqa: E402, F401
 from . import canopy  # noqa: E402, F401
 from . import scraper  # noqa: E402, F401
+from . import scheduler  # noqa: E402, F401
+from . import templates  # noqa: E402, F401
 

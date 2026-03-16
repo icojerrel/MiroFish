@@ -177,6 +177,19 @@ def generate_report():
                             )
                     except Exception as canopy_err:
                         logger.warning(f'Canopy report push failed (non-fatal): {canopy_err}')
+
+                    # 触发 Webhook（如已配置）
+                    try:
+                        from ..services.webhook_service import WebhookService
+                        project_name = project.name if hasattr(project, 'name') else str(project.project_id)
+                        WebhookService.report_completed(
+                            report_id=report.report_id,
+                            simulation_id=simulation_id,
+                            project_id=state.project_id,
+                            project_name=project_name,
+                        )
+                    except Exception as wh_err:
+                        logger.warning(f'Webhook report event failed (non-fatal): {wh_err}')
                 else:
                     task_manager.fail_task(task_id, report.error or "报告生成失败")
                 

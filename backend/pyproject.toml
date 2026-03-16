@@ -36,6 +36,12 @@ dependencies = [
     # Web Scraping (Scrapling — optional but recommended)
     # Provides adaptive scraping with anti-bot bypass for data ingestion
     "scrapling>=0.2.9",
+
+    # Scheduled scraping (APScheduler)
+    "apscheduler>=3.10.0,<4.0",
+
+    # HTTP client for webhooks (already available via requests)
+    "requests>=2.31.0",
 ]
 
 [project.optional-dependencies]

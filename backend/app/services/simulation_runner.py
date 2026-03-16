@@ -537,6 +537,20 @@ class SimulationRunner:
                         )
                 except Exception as _canopy_err:
                     logger.debug(f'Canopy simulation signal failed (non-fatal): {_canopy_err}')
+
+                # 触发 Webhook
+                try:
+                    from .webhook_service import WebhookService
+                    total_actions = (getattr(state, 'twitter_actions_count', 0) +
+                                     getattr(state, 'reddit_actions_count', 0))
+                    WebhookService.simulation_completed(
+                        simulation_id=simulation_id,
+                        project_id=getattr(state, 'project_id', ''),
+                        total_rounds=state.current_round,
+                        total_actions=total_actions,
+                    )
+                except Exception as _wh_err:
+                    logger.debug(f'Webhook simulation event failed (non-fatal): {_wh_err}')
             else:
                 state.runner_status = RunnerStatus.FAILED
                 # 从主日志文件读取错误信息

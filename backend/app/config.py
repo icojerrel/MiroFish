@@ -63,6 +63,10 @@ class Config:
     REPORT_AGENT_MAX_REFLECTION_ROUNDS = int(os.environ.get('REPORT_AGENT_MAX_REFLECTION_ROUNDS', '2'))
     REPORT_AGENT_TEMPERATURE = float(os.environ.get('REPORT_AGENT_TEMPERATURE', '0.5'))
 
+    # Webhook通知配置（可选）
+    WEBHOOK_URL = os.environ.get('WEBHOOK_URL', '')        # POST target for events
+    WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', '')  # HMAC-SHA256 signing secret
+
     # Scraper配置
     SCRAPER_MAX_TEXT_PER_PAGE = int(os.environ.get('SCRAPER_MAX_TEXT_PER_PAGE', '50000'))
     SCRAPER_DEFAULT_MODE = os.environ.get('SCRAPER_DEFAULT_MODE', 'auto')  # auto|basic|stealthy|dynamic

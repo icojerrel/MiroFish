@@ -248,6 +248,98 @@ All configuration is loaded via `backend/app/config.py`. Add new env vars there 
 
 ---
 
+## Scheduled Data Ingestion
+
+`SchedulerService` (APScheduler 3.x) automatically re-scrapes configured URL sources on an interval and appends fresh text to a project's corpus. Runs as a background daemon thread started from `create_app()`.
+
+### Scheduler API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/scheduler/sources` | Create a scheduled feed |
+| GET | `/api/scheduler/sources` | List all (filter by `?project_id=`) |
+| PATCH | `/api/scheduler/sources/:id` | Enable/disable (`{ "enabled": true }`) |
+| POST | `/api/scheduler/sources/:id/run` | Trigger immediately |
+| DELETE | `/api/scheduler/sources/:id` | Remove |
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `backend/app/services/scheduler_service.py` | APScheduler wrapper, persists to `uploads/scheduled_sources.json` |
+| `backend/app/api/scheduler.py` | CRUD endpoints |
+| `frontend/src/api/scheduler.js` | Frontend module |
+| `frontend/src/components/SchedulerPanel.vue` | Feed manager UI with enable toggle and run-now |
+
+---
+
+## Use-case Templates
+
+Eight pre-built enterprise simulation configurations in `backend/app/data/templates/`. Each template provides a `simulation_requirement`, suggested agent count, platform, and scraped data sources for immediate use.
+
+### Templates
+
+| ID | Name |
+|----|------|
+| `political_intelligence` | Political Campaign Intelligence |
+| `financial_risk` | Financial Risk & Market Intelligence |
+| `crisis_management` | Crisis & Disaster Management |
+| `pharma_trial` | Pharmaceutical Trial Prediction |
+| `competitive_intelligence` | Competitive Intelligence |
+| `investigative_journalism` | Investigative Journalism & Fact-Checking |
+| `hr_change_management` | HR & Organisational Change |
+| `cybersecurity_threat` | Cybersecurity Threat Modelling |
+
+### Templates API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/templates` | List all templates (summary) |
+| GET | `/api/templates/:id` | Full template detail |
+| POST | `/api/templates/:id/apply` | Apply to project + optional auto-schedule |
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `backend/app/data/templates/*.json` | 8 template definitions |
+| `backend/app/api/templates.py` | List/get/apply endpoints |
+| `frontend/src/api/templates.js` | Frontend module |
+| `frontend/src/components/TemplateSelector.vue` | Template picker with detail panel |
+
+---
+
+## Webhook Notifications
+
+`WebhookService` fires non-blocking HTTP POST events to a configured endpoint on key lifecycle events.
+
+### Events
+
+| Event | Trigger |
+|-------|---------|
+| `report.completed` | Report generation done |
+| `simulation.completed` | OASIS simulation finished |
+| `simulation.failed` | Simulation error |
+| `graph.built` | Knowledge graph construction done |
+| `scrape.ingested` | Scheduled data refresh completed |
+
+### Config
+
+```bash
+WEBHOOK_URL=https://your-endpoint.example.com/mirofish-events
+WEBHOOK_SECRET=your_hmac_signing_secret  # optional, enables X-MiroFish-Signature header
+```
+
+Payload signature: `HMAC-SHA256(payload, secret)` in `X-MiroFish-Signature` header.
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `backend/app/services/webhook_service.py` | Non-blocking event dispatcher |
+
+---
+
 ## Web Scraping Integration (Data Ingestion)
 
 MiroFish integrates with **[Scrapling](https://github.com/icojerrel/Scrapling)** — an adaptive scraping framework with anti-bot bypass — to feed live web content into the knowledge graph pipeline.
